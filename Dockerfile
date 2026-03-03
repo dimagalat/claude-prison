@@ -10,7 +10,11 @@ RUN apk add --no-cache \
     python3 \
     py3-pillow \
     su-exec \
-    docker-cli
+    docker-cli && \
+    npm install -g npm@latest
+
+# Silence npm update notices
+ENV NO_UPDATE_NOTIFIER=true
 
 # Install Claude Code globally
 RUN npm install -g @anthropic-ai/claude-code@latest
