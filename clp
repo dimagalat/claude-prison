@@ -36,17 +36,72 @@ if [ -f "$HOME/.ssh/known_hosts" ]; then
 fi
 
 # Use SSH Agent Forwarding instead of mounting ~/.ssh keys
-if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
-    VOLUMES+=("-v" "$SSH_AUTH_SOCK:/tmp/ssh-agent")
-    export SSH_AUTH_SOCK_CONTAINER="/tmp/ssh-agent"
+if [ -n "$SSH_AUTH_SOCK" ]; then
+    # Resolve potential symlinks (common on macOS /tmp -> /private/tmp)
+    RESOLVED_SOCKET=$(python3 -c "import os; print(os.path.realpath('$SSH_AUTH_SOCK'))")
+    if [ -S "$RESOLVED_SOCKET" ]; then
+        VOLUMES+=("-v" "$RESOLVED_SOCKET:/tmp/ssh-agent")
+        export SSH_AUTH_SOCK_CONTAINER="/tmp/ssh-agent"
+    else
+        echo ">> Warning: SSH_AUTH_SOCK ($SSH_AUTH_SOCK) resolved to $RESOLVED_SOCKET but it's not a valid socket."
+    fi
 else
-    echo ">> Warning: SSH_AUTH_SOCK is not set or invalid. Git SSH operations may fail inside the container."
-    echo ">> Tip: Start ssh-agent and add your keys (e.g., 'eval \$(ssh-agent)' and 'ssh-add ~/.ssh/id_ed25519')"
+    echo ">> Warning: SSH_AUTH_SOCK is not set. Git SSH operations may fail inside the container."
+    echo ">> Tip: Start ssh-agent and add your keys (e.g., 'eval \$(ssh-agent)' and 'ssh-add <your-key>')"
 fi
 
 # Mount Docker socket if it exists so Claude can run Docker commands
 if [ -S "/var/run/docker.sock" ]; then
     VOLUMES+=("-v" "/var/run/docker.sock:/var/run/docker.sock")
+fi
+
+if [ -n "$SSH_AUTH_SOCK_CONTAINER" ]; then
+    KEY_COUNT=$(ssh-add -l 2>/dev/null | grep -cv "no identities" || true)
+    if [ "$KEY_COUNT" -eq 0 ]; then
+        echo ">> Warning: Your ssh-agent is running but has NO KEYS loaded."
+        # Discover available private keys in ~/.ssh
+        AVAILABLE_KEYS=()
+        for f in "$HOME"/.ssh/id_*; do
+            # Skip public keys and non-files
+            [[ "$f" == *.pub ]] && continue
+            [ -f "$f" ] || continue
+            AVAILABLE_KEYS+=("$f")
+        done
+
+        if [ ${#AVAILABLE_KEYS[@]} -eq 0 ]; then
+            echo ">> No SSH private keys found in ~/.ssh/. Git SSH operations may fail."
+        elif [ ${#AVAILABLE_KEYS[@]} -eq 1 ]; then
+            echo ">> Found SSH key: ${AVAILABLE_KEYS[0]}"
+            read -rp ">> Add it to the agent? [Y/n] " REPLY
+            if [[ -z "$REPLY" || "$REPLY" =~ ^[Yy] ]]; then
+                ssh-add "${AVAILABLE_KEYS[0]}"
+                echo ">> Key added."
+            else
+                echo ">> Skipped. You can add it later with: ssh-add ${AVAILABLE_KEYS[0]}"
+            fi
+        else
+            echo ">> Found ${#AVAILABLE_KEYS[@]} SSH keys:"
+            for i in "${!AVAILABLE_KEYS[@]}"; do
+                echo "   $((i+1))) ${AVAILABLE_KEYS[$i]}"
+            done
+            read -rp ">> Select a key to add (1-${#AVAILABLE_KEYS[@]}), or 'a' for all, 's' to skip: " CHOICE
+            if [[ "$CHOICE" == "a" ]]; then
+                for k in "${AVAILABLE_KEYS[@]}"; do
+                    ssh-add "$k"
+                done
+                echo ">> All keys added."
+            elif [[ "$CHOICE" == "s" || -z "$CHOICE" ]]; then
+                echo ">> Skipped. Add keys manually with: ssh-add <key-path>"
+            elif [[ "$CHOICE" =~ ^[0-9]+$ ]] && [ "$CHOICE" -ge 1 ] && [ "$CHOICE" -le ${#AVAILABLE_KEYS[@]} ]; then
+                ssh-add "${AVAILABLE_KEYS[$((CHOICE-1))]}"
+                echo ">> Key added."
+            else
+                echo ">> Invalid choice. Skipping."
+            fi
+        fi
+    else
+        echo ">> Host SSH Agent detected with $KEY_COUNT key(s)."
+    fi
 fi
 
 echo ">> Starting Claude Code in Prison (isolated container)..."
