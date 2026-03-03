@@ -43,6 +43,11 @@ mkdir -p /home/claude/.ssh
 chown -R "$USER_UID:$USER_GID" /home/claude 2>/dev/null || true
 chmod 700 /home/claude/.ssh
 
+# Ensure the SSH agent socket is accessible by the mapped user
+if [ -S "$SSH_AUTH_SOCK" ]; then
+    chown "$USER_UID:$USER_GID" "$SSH_AUTH_SOCK" 2>/dev/null || true
+fi
+
 export SHELL=/bin/bash
 
 # Switch from root to the mapped user and execute the passed command (e.g. `claude`)
