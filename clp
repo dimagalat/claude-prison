@@ -46,6 +46,9 @@ fi
 
 echo ">> Starting Claude Code in Prison (isolated container)..."
 
+# Aggressively remove any leftover dead/orphaned container from previous crashes
+docker rm -f "claude-prison-session" >/dev/null 2>&1 || true
+
 # Base docker run parameters
 DOCKER_CMD=(docker run -it --rm
     --name "claude-prison-session"
@@ -60,5 +63,45 @@ if [ -n "$SSH_AUTH_SOCK_CONTAINER" ]; then
     DOCKER_CMD+=("-e" "SSH_AUTH_SOCK=$SSH_AUTH_SOCK_CONTAINER")
 fi
 
-# Run the container
-"${DOCKER_CMD[@]}" "$IMAGE_NAME" claude --dangerously-skip-permissions "$@"
+# Ensure Homebrew path is available in case the wrapper is invoked in a clean environment
+export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+# Run the container (with tmux integration for claude-gym)
+if command -v tmux >/dev/null 2>&1; then
+    CGYM_BIN="$SCRIPT_DIR/claude-gym/cgym"
+    if [ ! -f "$CGYM_BIN" ]; then
+        echo ">> Building claude-gym natively for tmux integration..."
+        (cd "$SCRIPT_DIR/claude-gym" && go build -o cgym .) || true
+    fi
+
+    if [ -f "$CGYM_BIN" ]; then
+        if [ -n "$TMUX" ]; then
+            echo ">> Splitting current tmux window for Claude Gym..."
+            # Explicitly target the current window and pane when splitting
+            tmux split-window -h -t "{active}" -p 30 "CLAUDE_BASE_DIR=\"$CLAUDE_CONFIG_DIR\" CLAUDE_PROJECT_PATH=\"$CLAUDE_CONFIG_DIR/projects/-workspace\" $CGYM_BIN"
+            exec "${DOCKER_CMD[@]}" "$IMAGE_NAME" claude --dangerously-skip-permissions "$@"
+        else
+            echo ">> Starting Claude Prison with Claude Gym in a new tmux session..."
+            SESSION_NAME="claude-prison-$$"
+            
+            # Start a detached tmux session running a persistent shell
+            tmux new-session -d -s "$SESSION_NAME" "bash"
+            
+            # Formulate the exact command string and send it to the shell
+            CMD_STRING="${DOCKER_CMD[*]} $IMAGE_NAME claude --dangerously-skip-permissions $*"
+            tmux send-keys -t "$SESSION_NAME" "$CMD_STRING" C-m
+            
+            # Split the window (right pane 30% width) for claude-gym, passing the configuration directory and Docker path
+            tmux split-window -h -t "$SESSION_NAME" -p 30 "CLAUDE_BASE_DIR=\"$CLAUDE_CONFIG_DIR\" CLAUDE_PROJECT_PATH=\"$CLAUDE_CONFIG_DIR/projects/-workspace\" $CGYM_BIN"
+            
+            # Select the left pane (Claude) so user input focuses there
+            tmux select-pane -t "$SESSION_NAME":0.0
+            
+            # Attach and replace current shell
+            exec tmux attach-session -t "$SESSION_NAME"
+        fi
+    fi
+fi
+
+# Fallback: run normally if tmux isn't available or gym failed to build
+exec "${DOCKER_CMD[@]}" "$IMAGE_NAME" claude --dangerously-skip-permissions "$@"

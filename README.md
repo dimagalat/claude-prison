@@ -11,6 +11,7 @@ By running Claude Code inside a Docker container, it can safely plan, create, an
 - **Persistent Sessions:** Claude Code's login credentials and settings are persisted locally in `~/.config/claude-prison`.
 - **Correct Privileges:** The `entrypoint.sh` logic dynamically maps your host machine's User ID (UID/GID) inside the container. This means any Python files, Node modules, or directories Claude makes are owned by *you*, not Docker's `root` user.
 - **Bundled Tools:** The image includes `git`, `python3`, `node`, `curl`, `build-base`, and the `docker` CLI.
+- **Claude Gym Integration:** Automatically spins up a side-by-side [Claude Gym](https://github.com/477-Studio/claude-gym) instance in a split `tmux` pane to remind you to stretch while Claude writes code.
 
 ## Prerequisites
 - **Docker** installed and running on your host machine.
@@ -70,3 +71,13 @@ To use Claude Prison for a project:
    - *"Commit everything to a new branch and push."*
 
 Because it is contained, Claude will seamlessly execute `npm install`, `mkdir`, `python3`, `git commit` and `docker build` without constantly pinging you for `Y/N` permission approvals!
+
+### Claude Gym Side-by-Side
+
+This repository includes a customized version of [Claude Gym](https://github.com/477-Studio/claude-gym) featuring a developer in an orange prison jumpsuit.
+
+When you execute `clp`, the script checks if `tmux` is installed. If so, it:
+1. Orchestrates a `tmux` session on your macOS host.
+2. Splits your terminal into two panes.
+3. Runs the isolated `claude-prison` Docker shell on the left.
+4. Runs `claude-gym` natively on the right (at 30% width) to monitor the ongoing conversation logs and prompt you to exercise!
