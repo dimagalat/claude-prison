@@ -38,6 +38,11 @@ if [ -d /claude ]; then
     chown "$USER_UID:$USER_GID" /claude 2>/dev/null || true
 fi
 
+# Create SSH directory for potential mounts (known_hosts, etc)
+mkdir -p /home/claude/.ssh
+chown -R "$USER_UID:$USER_GID" /home/claude 2>/dev/null || true
+chmod 700 /home/claude/.ssh
+
 export SHELL=/bin/bash
 
 # Switch from root to the mapped user and execute the passed command (e.g. `claude`)

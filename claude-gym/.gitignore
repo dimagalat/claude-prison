@@ -1,0 +1,40 @@
+# Binaries
+claude-gym
+cg
+cgym
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binaries
+*.test
+
+# Output of go coverage
+*.out
+
+# Go workspace
+go.work
+go.work.sum
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
+
+# Debug/temp
+*.log
+tmp/
+
+# Generated sprite previews (regenerate via cmd/devsprite/)
+assets/developer/*_preview.png
+assets/developer/*.png

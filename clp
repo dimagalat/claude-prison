@@ -30,6 +30,11 @@ if [ -f "$HOME/.gitconfig" ]; then
     VOLUMES+=("-v" "$HOME/.gitconfig:/home/claude/.gitconfig:ro")
 fi
 
+# Mount known_hosts to prevent verification prompts
+if [ -f "$HOME/.ssh/known_hosts" ]; then
+    VOLUMES+=("-v" "$HOME/.ssh/known_hosts:/home/claude/.ssh/known_hosts:ro")
+fi
+
 # Use SSH Agent Forwarding instead of mounting ~/.ssh keys
 if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
     VOLUMES+=("-v" "$SSH_AUTH_SOCK:/tmp/ssh-agent")

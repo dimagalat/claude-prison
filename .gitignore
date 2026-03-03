@@ -15,3 +15,11 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Security / Credentials
+.ssh/
+*.pem
+*.key
+*.pub
+.env*
+! .env.example

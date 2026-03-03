@@ -1,16 +1,15 @@
 # Use official Node.js Alpine image
 FROM node:22-alpine
 
-# Install git, su-exec, bash, and additional tools
-RUN apk update && apk add --no-cache \
+# Install minimal required tools
+RUN apk add --no-cache \
     bash \
     curl \
     git \
-    build-base \
+    openssh-client \
     python3 \
-    py3-pip \
+    py3-pillow \
     su-exec \
-    vim \
     docker-cli
 
 # Install Claude Code globally
