@@ -36,10 +36,12 @@ type AppModel struct {
 	speechBubble string
 
 	// State tracking
-	countdown   int
-	exerciseEnd time.Time
-	currentEx   *ExerciseConfig
-	lastEvent   time.Time
+	countdown        int
+	exerciseEnd      time.Time
+	currentEx        *ExerciseConfig
+	lastEvent        time.Time
+	lastExercise     time.Time
+	exerciseCooldown time.Duration
 }
 
 // Init initialize the app with a tick
@@ -126,8 +128,8 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.speechBubble != "" && now.Sub(m.lastEvent) > 5*time.Second {
 				m.speechBubble = ""
 			}
-			// If we've been idle for 30 minutes, remind to exercise
-			if now.Sub(m.lastEvent) > 30*time.Minute {
+			// If we've been idle for 10 minutes, remind to exercise
+			if now.Sub(m.lastEvent) > 10*time.Minute && now.Sub(m.lastExercise) > 15*time.Minute {
 				m.triggerExercise()
 			}
 		case UICountdown:
@@ -136,6 +138,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.state = UIExercising
 				m.setAnimation(m.currentEx.AnimName())
 				m.exerciseEnd = now.Add(45 * time.Second) // default exercise duration
+				m.lastExercise = now                      // Mark start of exercise
 				m.speechBubble = m.currentEx.BubbleText()
 			} else {
 				m.speechBubble = fmt.Sprintf("Starting in %d...", remaining)
@@ -175,7 +178,7 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.state == UIIdle {
 				m.setAnimation("coffee_idle")
 				m.speechBubble = "Your turn!"
-				// Check if we should exercise
+				// Check if we should exercise (probabilistic after a turn)
 				m.checkExerciseTrigger()
 			}
 		}
@@ -187,8 +190,17 @@ func (m AppModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *AppModel) checkExerciseTrigger() {
-	// Simple exercise trigger logic: every 30 minutes
-	if time.Since(m.lastEvent) > 30*time.Minute {
+	// 1. Probabilistic trigger after a turn (20% chance if 15 mins passed since last exercise)
+	if time.Since(m.lastExercise) > 15*time.Minute {
+		// Use UnixNano for a simple pseudo-random seed
+		if time.Now().UnixNano()%5 == 0 {
+			m.triggerExercise()
+			return
+		}
+	}
+
+	// 2. Fallback: Force exercise if it's been over 45 minutes regardless of activity
+	if time.Since(m.lastExercise) > 45*time.Minute {
 		m.triggerExercise()
 	}
 }

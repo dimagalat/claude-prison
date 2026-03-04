@@ -123,11 +123,12 @@ func main() {
 	exerciseLog := LoadExerciseLog()
 
 	appState := &AppModel{
-		watcher:   watcher,
-		exercises: exercises,
-		log:       exerciseLog,
-		state:     UIIdle,
-		lastEvent: time.Now(),
+		watcher:      watcher,
+		exercises:    exercises,
+		log:          exerciseLog,
+		state:        UIIdle,
+		lastEvent:    time.Now(),
+		lastExercise: time.Now(),
 	}
 	appState.setAnimation("coffee_idle")
 

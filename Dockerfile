@@ -4,6 +4,7 @@ FROM node:22-alpine
 # Install minimal required tools
 RUN apk add --no-cache \
     bash \
+    ca-certificates \
     curl \
     git \
     openssh-client \
@@ -16,8 +17,12 @@ RUN apk add --no-cache \
 # Silence npm update notices
 ENV NO_UPDATE_NOTIFIER=true
 
-# Install Claude Code globally
-RUN npm install -g @anthropic-ai/claude-code@latest
+# Install Claude Code globally and safely hot-patch the broken OAuth scopes
+# We pin to 2.1.68 and apply a core-level surgical patch to repair the scope array.
+COPY patch.js /tmp/patch.js
+RUN npm install -g @anthropic-ai/claude-code@2.1.68 && \
+    node /tmp/patch.js && \
+    rm /tmp/patch.js
 
 # Create directories
 RUN mkdir -p /claude /workspace

@@ -25,14 +25,39 @@ VOLUMES=(
     "-v" "$CLAUDE_CONFIG_DIR:/claude"
 )
 
-# Mount gitconfig if it exists
+# Mount host Claude auth files if they exist to pass session into container
+if [ -d "$HOME/.claude" ]; then
+    VOLUMES+=("-v" "$HOME/.claude:/claude/.claude")
+fi
+if [ -f "$HOME/.claude.json" ]; then
+    VOLUMES+=("-v" "$HOME/.claude.json:/claude/.claude.json")
+fi
+
+# Extract Claude Code credentials from macOS Keychain to inject into Docker
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    MAC_CREDS=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null || true)
+    if [ -n "$MAC_CREDS" ]; then
+        CREDS_FILE="$CLAUDE_CONFIG_DIR/.credentials.json"
+        echo "$MAC_CREDS" > "$CREDS_FILE"
+        chmod 600 "$CREDS_FILE"
+        # The file is now in $CLAUDE_CONFIG_DIR which is mounted to /claude
+    fi
+fi
+
+# Mount gitconfig if it exists to a neutral location
 if [ -f "$HOME/.gitconfig" ]; then
-    VOLUMES+=("-v" "$HOME/.gitconfig:/home/claude/.gitconfig:ro")
+    VOLUMES+=("-v" "$HOME/.gitconfig:/claude/.gitconfig:ro")
 fi
 
 # Mount known_hosts to prevent verification prompts
 if [ -f "$HOME/.ssh/known_hosts" ]; then
-    VOLUMES+=("-v" "$HOME/.ssh/known_hosts:/home/claude/.ssh/known_hosts:ro")
+    VOLUMES+=("-v" "$HOME/.ssh/known_hosts:/claude/.ssh_known_hosts:ro")
+fi
+
+
+# Mount ssh config if it exists
+if [ -f "$HOME/.ssh/config" ]; then
+    VOLUMES+=("-v" "$HOME/.ssh/config:/claude/.ssh_config:ro")
 fi
 
 # Use SSH Agent Forwarding instead of mounting ~/.ssh keys
@@ -42,12 +67,20 @@ if [ -n "$SSH_AUTH_SOCK" ]; then
     if [ -S "$RESOLVED_SOCKET" ]; then
         VOLUMES+=("-v" "$RESOLVED_SOCKET:/tmp/ssh-agent")
         export SSH_AUTH_SOCK_CONTAINER="/tmp/ssh-agent"
-    else
-        echo ">> Warning: SSH_AUTH_SOCK ($SSH_AUTH_SOCK) resolved to $RESOLVED_SOCKET but it's not a valid socket."
     fi
-else
-    echo ">> Warning: SSH_AUTH_SOCK is not set. Git SSH operations may fail inside the container."
-    echo ">> Tip: Start ssh-agent and add your keys (e.g., 'eval \$(ssh-agent)' and 'ssh-add <your-key>')"
+fi
+
+# Fallback for Docker Desktop for Mac if standard forwarding fails
+if [ -z "$SSH_AUTH_SOCK_CONTAINER" ] && [[ "$OSTYPE" == "darwin"* ]]; then
+    # Docker for Mac provides a magic socket at this location
+    MAGIC_SOCK="/run/host-services/ssh-auth.sock"
+    VOLUMES+=("-v" "$MAGIC_SOCK:$MAGIC_SOCK")
+    export SSH_AUTH_SOCK_CONTAINER="$MAGIC_SOCK"
+fi
+
+if [ -z "$SSH_AUTH_SOCK_CONTAINER" ]; then
+    echo ">> Warning: SSH_AUTH_SOCK is not set or couldn't be resolved. Git SSH operations may fail."
+    echo ">> Tip: Start ssh-agent and add your keys (e.g., 'ssh-add ~/.ssh/id_ed25519')"
 fi
 
 # Mount Docker socket if it exists so Claude can run Docker commands
@@ -101,6 +134,14 @@ if [ -n "$SSH_AUTH_SOCK_CONTAINER" ]; then
         fi
     else
         echo ">> Host SSH Agent detected with $KEY_COUNT key(s)."
+    fi
+
+    echo ">> [Host Check] Verifying GitHub SSH connectivity..."
+    if ssh -T -o ConnectTimeout=5 -o BatchMode=yes git@github.com 2>&1 | grep -q "successfully authenticated"; then
+        echo ">> [Host Check] Success: Host is authenticated with GitHub."
+    else
+        echo ">> [Host Check] Warning: Host failed GitHub SSH authentication."
+        echo ">> Your container will likely fail to push unless you resolve this on your Mac first."
     fi
 fi
 
