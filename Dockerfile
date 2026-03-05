@@ -8,8 +8,6 @@ RUN apk add --no-cache \
     curl \
     git \
     openssh-client \
-    python3 \
-    py3-pillow \
     su-exec \
     docker-cli && \
     npm install -g npm@latest
@@ -17,12 +15,8 @@ RUN apk add --no-cache \
 # Silence npm update notices
 ENV NO_UPDATE_NOTIFIER=true
 
-# Install Claude Code globally and safely hot-patch the broken OAuth scopes
-# We pin to 2.1.68 and apply a core-level surgical patch to repair the scope array.
-COPY patch.js /tmp/patch.js
-RUN npm install -g @anthropic-ai/claude-code@2.1.68 && \
-    node /tmp/patch.js && \
-    rm /tmp/patch.js
+# Install Claude Code globally
+RUN npm install -g @anthropic-ai/claude-code@latest
 
 # Create directories
 RUN mkdir -p /claude /workspace
