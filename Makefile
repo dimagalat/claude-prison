@@ -2,9 +2,12 @@ DOCKER_IMAGE_NAME = claude-prison-env
 DOCKER_CONTAINER_NAME = claude-prison-session
 BIN_DIR ?= ~/.local/bin
 
-.PHONY: build run stop shell restart clean logs status
+.PHONY: build run stop shell restart clean logs status cgym
 
-build:
+cgym:
+	cd claude-gym && go build -o cgym .
+
+build: cgym
 	docker build -t $(DOCKER_IMAGE_NAME) .
 
 run:

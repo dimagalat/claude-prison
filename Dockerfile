@@ -7,6 +7,7 @@ RUN apk add --no-cache \
     ca-certificates \
     curl \
     git \
+    go \
     openssh-client \
     su-exec \
     docker-cli && \

@@ -28,7 +28,7 @@ Before Claude Code can work, it needs to be authenticated with your Anthropic ac
 2. Ensure you have an active SSH Agent running (if you want Claude to `git push`):
    ```bash
    eval $(ssh-agent)
-   ssh-add ~/.ssh/id_ed25519 # Or whatever your key name is
+   ssh-add ~/.ssh/{something} # Or whatever your key name is
    ```
 3. Run the initial login sequence:
    ```bash
