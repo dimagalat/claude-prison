@@ -5,7 +5,14 @@ set -e
 
 # Configuration
 IMAGE_NAME="claude-prison-env"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Get absolute path of this script, following symlinks
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR=$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)
+  SOURCE=$(readlink "$SOURCE")
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR=$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)
 CLAUDE_CONFIG_DIR="$HOME/.config/claude-prison"
 HOST_UID=$(id -u)
 HOST_GID=$(id -g)

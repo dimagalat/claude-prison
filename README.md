@@ -12,7 +12,7 @@ By running Claude Code inside a Docker container, it can safely plan, create, an
 
 ### Also
 - **Correct Privileges:** The `entrypoint.sh` logic dynamically maps your host machine's User ID (UID/GID) inside the container. This means any Python files, Node modules, or directories Claude makes are owned by *you*, not Docker's `root` user.
-- **Bundled Tools:** The image includes `git`, `python3`, `node`, `curl`, `build-base`, and the `docker` CLI.
+- **Bundled Tools:** The image includes `git`, `node`, `curl`, `bash`, `openssh-client`, and the `docker` CLI.
 - **Claude Gym Integration:** Automatically spins up a side-by-side [Claude Gym](https://github.com/477-Studio/claude-gym) instance in a split `tmux` pane to remind you to stretch while Claude writes code.
 
 ## Prerequisites
@@ -71,7 +71,7 @@ To use Claude Prison for a project:
    - *"Refactor the entire login component and run the unit tests."*
    - *"Commit everything to a new branch and push."*
 
-Because it is contained, Claude will seamlessly execute `npm install`, `mkdir`, `python3`, `git commit` and `docker build` without constantly pinging you for `Y/N` permission approvals!
+Because it is contained, Claude will seamlessly execute commands without constantly pinging you for permission approvals!
 
 ### Claude Gym Side-by-Side
 
