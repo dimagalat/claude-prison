@@ -65,12 +65,7 @@ To use Claude Prison for a project:
    ```bash
    clp
    ```
-3. You are now in a sandboxed, interactive Claude Code session. The `--dangerously-skip-permissions` flag is active, meaning you can assign comprehensive tasks like:
-   - *"Build me a Python web scraper, install requests, and test it."*
-   - *"Write a new Dockerfile and build it to test."*
-   - *"Refactor the entire login component and run the unit tests."*
-   - *"Commit everything to a new branch and push."*
-
+3. You are now in a sandboxed, interactive Claude Code session. The `--dangerously-skip-permissions` flag is active.
 Because it is contained, Claude will seamlessly execute commands without constantly pinging you for permission approvals!
 
 ### Claude Gym Side-by-Side
