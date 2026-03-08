@@ -26,17 +26,14 @@ RUN mkdir -p /claude /workspace
 # The Makefile copies ~/.claude/skills to a local .tmp-skills context for build.
 ARG INSTALL_SKILLS=""
 COPY .tmp-skills/ /skills/
-RUN if [ -n "$INSTALL_SKILLS" ]; then \
+COPY install-skills.sh /usr/local/bin/install-skills.sh
+RUN chmod +x /usr/local/bin/install-skills.sh && \
+    if [ -n "$INSTALL_SKILLS" ]; then \
         apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/* && \
-        if [ -f "/skills/install-skills.sh" ]; then \
-            chmod +x /skills/install-skills.sh && \
-            if [ "$INSTALL_SKILLS" = "all" ]; then \
-                /skills/install-skills.sh; \
-            else \
-                /skills/install-skills.sh $INSTALL_SKILLS; \
-            fi; \
+        if [ "$INSTALL_SKILLS" = "all" ]; then \
+            /usr/local/bin/install-skills.sh; \
         else \
-            echo ">> Warning: install-skills.sh not found in skill bundle!"; \
+            /usr/local/bin/install-skills.sh $INSTALL_SKILLS; \
         fi && \
         if [ -f "/skills/env.sh" ]; then \
             mv /skills/env.sh /etc/profile.d/skills-env.sh; \
