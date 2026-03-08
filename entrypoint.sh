@@ -89,15 +89,18 @@ if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
     fi
 fi
 
-# Set up Claude Auth / Subscription via persistent symlinks
-# This allows Claude Code to write refreshed tokens and session state back to the host-mounted config dir
+# Set up Claude Auth / Subscription via persistent symlinks in the WORKSPACE
+# This allows Claude Code to see settings/skills directly in the project folder
 PERSISTENT_CLAUDE_DIR="/claude/.claude"
-CONTAINER_CLAUDE_DIR="${USER_HOME}/.claude"
+CONTAINER_CLAUDE_DIR="/workspace/.claude"
 PERSISTENT_AUTH="/claude/.claude.json"
-CONTAINER_AUTH="${USER_HOME}/.claude.json"
+CONTAINER_AUTH="/workspace/.claude.json"
+
+# Ensure /workspace is owned by the user (it usually is via mount, but gosu needs it)
+chown "$USER_UID:$USER_GID" /workspace 2>/dev/null || true
 
 if [ -d "$PERSISTENT_CLAUDE_DIR" ]; then
-    echo ">> [Claude Auth] Establishing full session bridge in ${USER_HOME}..."
+    echo ">> [Claude Auth] Establishing full session bridge in /workspace..."
     ln -sf "$PERSISTENT_CLAUDE_DIR" "$CONTAINER_CLAUDE_DIR"
     chown -h "$USER_UID:$USER_GID" "$CONTAINER_CLAUDE_DIR" 2>/dev/null || true
 fi
@@ -109,6 +112,14 @@ if [ -f "$PERSISTENT_AUTH" ]; then
     if grep -q "opusProMigrationComplete" "$CONTAINER_AUTH" 2>/dev/null; then
         echo ">> [Claude Auth] Subscription: Professional/Max features active."
     fi
+fi
+
+PERSISTENT_CREDS="/claude/.credentials.json"
+CONTAINER_CREDS="/workspace/.credentials.json"
+if [ -f "$PERSISTENT_CREDS" ]; then
+    echo ">> [Claude Auth] Bridging keychain credentials..."
+    ln -sf "$PERSISTENT_CREDS" "$CONTAINER_CREDS"
+    chown -h "$USER_UID:$USER_GID" "$CONTAINER_CREDS" 2>/dev/null || true
 fi
 
 if [ ! -d "$PERSISTENT_CLAUDE_DIR" ] && [ ! -f "$PERSISTENT_AUTH" ]; then

@@ -165,7 +165,7 @@ DOCKER_CMD=(docker run -it --rm
     "${VOLUMES[@]}"
     -e USER_UID="$HOST_UID"
     -e USER_GID="$HOST_GID"
-    -e CLAUDE_CONFIG_DIR="/claude"
+    -e CLAUDE_CONFIG_DIR="/workspace"
 )
 
 # Forward SSH Agent socket if available
@@ -189,7 +189,7 @@ if command -v tmux >/dev/null 2>&1; then
             echo ">> Splitting current tmux window for Claude Gym..."
             # Explicitly target the current window and pane when splitting
             tmux split-window -h -t "{active}" -p 30 "CLAUDE_BASE_DIR=\"$CLAUDE_CONFIG_DIR\" CLAUDE_PROJECT_PATH=\"$CLAUDE_CONFIG_DIR/projects/-workspace\" $CGYM_BIN"
-            exec "${DOCKER_CMD[@]}" "$IMAGE_NAME" claude --dangerously-skip-permissions "$@"
+            exec "${DOCKER_CMD[@]}" "$IMAGE_NAME" claude --dangerously-skip-permissions --settings '{"skipDangerousModePermissionPrompt": true}' "$@"
         else
             echo ">> Starting Claude Prison with Claude Gym in a new tmux session..."
             SESSION_NAME="claude-prison-$$"
@@ -214,4 +214,4 @@ if command -v tmux >/dev/null 2>&1; then
 fi
 
 # Fallback: run normally if tmux isn't available or gym failed to build
-exec "${DOCKER_CMD[@]}" "$IMAGE_NAME" claude --dangerously-skip-permissions "$@"
+exec "${DOCKER_CMD[@]}" "$IMAGE_NAME" claude --dangerously-skip-permissions --settings '{"skipDangerousModePermissionPrompt": true}' "$@"
