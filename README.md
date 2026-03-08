@@ -23,10 +23,6 @@ By running Claude Code inside a Docker container, it can safely plan, create, an
 Before Claude Code can work, it needs to be authenticated with your Anthropic account. This process uses an OAuth flow that will open a browser to generate a token. **This token is securely preserved in `~/.config/claude-prison` so you only have to do this once.**
 
 1. Clone this repository anywhere on your machine:
-   ```bash
-   git clone https://github.com/your-username/claude-prison.git ~/.claude-prison
-   cd ~/.claude-prison
-   ```
 2. Ensure you have an active SSH Agent running (if you want Claude to `git push`):
    ```bash
    eval $(ssh-agent)

@@ -116,8 +116,8 @@ if [ ! -d "$PERSISTENT_CLAUDE_DIR" ] && [ ! -f "$PERSISTENT_AUTH" ]; then
 fi
 
 # Source skill environment variables if any skills were installed
-if [ -f /skills/env.sh ]; then
-    . /skills/env.sh
+if [ -f /etc/profile.d/skills-env.sh ]; then
+    . /etc/profile.d/skills-env.sh
 fi
 
 export SHELL=/bin/bash

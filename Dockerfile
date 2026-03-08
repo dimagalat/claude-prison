@@ -37,6 +37,9 @@ RUN if [ -n "$INSTALL_SKILLS" ]; then \
             fi; \
         else \
             echo ">> Warning: install-skills.sh not found in skill bundle!"; \
+        fi && \
+        if [ -f "/skills/env.sh" ]; then \
+            mv /skills/env.sh /etc/profile.d/skills-env.sh; \
         fi \
     fi && \
     # Cleanup skills files from image since clp mounts them at runtime anyway
