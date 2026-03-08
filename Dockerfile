@@ -26,21 +26,24 @@ RUN mkdir -p /claude /workspace
 # The Makefile copies ~/.claude/skills to a local .tmp-skills context for build.
 ARG INSTALL_SKILLS=""
 COPY .tmp-skills/ /skills/
-COPY install-skills.sh /usr/local/bin/install-skills.sh
-RUN chmod +x /usr/local/bin/install-skills.sh && \
-    if [ -n "$INSTALL_SKILLS" ]; then \
+RUN if [ -n "$INSTALL_SKILLS" ]; then \
         apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/* && \
-        if [ "$INSTALL_SKILLS" = "all" ]; then \
-            /usr/local/bin/install-skills.sh; \
+        if [ -f "/skills/install-skills.sh" ]; then \
+            chmod +x /skills/install-skills.sh && \
+            if [ "$INSTALL_SKILLS" = "all" ]; then \
+                /skills/install-skills.sh; \
+            else \
+                /skills/install-skills.sh $INSTALL_SKILLS; \
+            fi; \
         else \
-            /usr/local/bin/install-skills.sh $INSTALL_SKILLS; \
+            echo ">> Warning: install-skills.sh not found in skill bundle!"; \
         fi && \
         if [ -f "/skills/env.sh" ]; then \
             mv /skills/env.sh /etc/profile.d/skills-env.sh; \
         fi \
     fi && \
-    # Cleanup temporary skills directory since clp mounts them at runtime anyway
-    rm -rf /skills
+    # Cleanup skills files from image since clp mounts them at runtime anyway
+    rm -rf /skills/*
 # Copy local entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
