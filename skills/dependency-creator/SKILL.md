@@ -20,7 +20,7 @@ Claude Prison uses a specialized dynamic dependency installer during the build p
 
 ### File Format
 
-The `dependencies.json` file supports four optional fields. Here is an example of the maximum structure:
+The `dependencies.json` file supports four optional fields. Here is an example of the structure:
 
 ```json
 {
