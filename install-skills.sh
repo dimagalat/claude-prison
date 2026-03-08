@@ -66,10 +66,13 @@ for skill in "${skills[@]}"; do
 
     # Collect env vars into a shared env file sourced by entrypoint
     python3 -c "
-import json, sys
-d = json.load(open('$deps'))
-for k, v in d.get('env', {}).items():
-    print(f'export {k}=\"{v}\"')
+import json, sys, shlex
+try:
+    d = json.load(open('$deps'))
+    for k, v in d.get('env', {}).items():
+        print(f'export {k}={shlex.quote(str(v))}')
+except Exception:
+    pass
 " 2>/dev/null >> "$SKILLS_DIR/env.sh" || true
 done
 
@@ -80,11 +83,10 @@ if [ ${#all_apk[@]} -gt 0 ]; then
     apt-get update && apt-get install -y --no-install-recommends "${unique_apk[@]}" && rm -rf /var/lib/apt/lists/*
 fi
 
-# Install pip packages (deduplicated)
 if [ ${#all_pip[@]} -gt 0 ]; then
     unique_pip=($(printf '%s\n' "${all_pip[@]}" | sort -u))
     echo ">> Installing pip packages: ${unique_pip[*]}"
-    pip install --no-cache-dir --break-system-packages "${unique_pip[@]}"
+    pip3 install --no-cache-dir --break-system-packages "${unique_pip[@]}"
 fi
 
 # Run post-install commands

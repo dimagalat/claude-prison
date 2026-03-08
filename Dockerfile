@@ -39,8 +39,8 @@ RUN chmod +x /usr/local/bin/install-skills.sh && \
             mv /skills/env.sh /etc/profile.d/skills-env.sh; \
         fi \
     fi && \
-    # Cleanup skills files from image since clp mounts them at runtime anyway
-    rm -rf /skills/*
+    # Cleanup temporary skills directory since clp mounts them at runtime anyway
+    rm -rf /skills
 # Copy local entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
