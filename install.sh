@@ -26,7 +26,7 @@ echo ">> You can now run 'clp' in any directory to open an isolated Claude sessi
 # Offer to install bundled skills globally
 if [ -d "$SCRIPT_DIR/skills" ] && [ "$(ls -A "$SCRIPT_DIR/skills" 2>/dev/null)" ]; then
     echo ""
-    read -p ">> This repository comes with bundled Claude Code skills (e.g. dependency-creator). Install them globally to ~/.claude/skills? [y/N] " install_skills_reply
+    read -p ">> This repository comes with bundled Claude Code skill: dependency-creator. Install them globally to ~/.claude/skills? [y/N] " install_skills_reply
     if [[ $install_skills_reply =~ ^[Yy]$ ]]; then
         mkdir -p "$HOME/.claude/skills"
         cp -R "$SCRIPT_DIR/skills/"* "$HOME/.claude/skills/"
