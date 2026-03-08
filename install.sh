@@ -22,3 +22,16 @@ chmod +x "$SCRIPT_DIR/clp"
 
 echo ">> Successfully installed 'clp' to $BIN_DIR/clp"
 echo ">> You can now run 'clp' in any directory to open an isolated Claude session."
+
+# Offer to install bundled skills globally
+if [ -d "$SCRIPT_DIR/skills" ] && [ "$(ls -A "$SCRIPT_DIR/skills" 2>/dev/null)" ]; then
+    echo ""
+    read -p ">> This repository comes with bundled Claude Code skills (e.g. dependency-creator). Install them globally to ~/.claude/skills? [y/N] " install_skills_reply
+    if [[ $install_skills_reply =~ ^[Yy]$ ]]; then
+        mkdir -p "$HOME/.claude/skills"
+        cp -R "$SCRIPT_DIR/skills/"* "$HOME/.claude/skills/"
+        echo ">> Skills successfully installed to ~/.claude/skills"
+    else
+        echo ">> Skipped installing bundled skills."
+    fi
+fi
