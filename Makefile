@@ -13,7 +13,18 @@ build: cgym
 # Build with all skills: make build-with-skills
 # Build with specific skills: make build-with-skills SKILLS="webapp-testing"
 build-with-skills: cgym
-	docker build --build-arg INSTALL_SKILLS="$(or $(SKILLS),all)" -t $(DOCKER_IMAGE_NAME) .
+	@echo ">> Checking for ~/.claude/skills for dependencies..."
+	@if [ -d "$$HOME/.claude/skills" ]; then \
+		echo ">> Found skills directory. Syncing to temporary build context..."; \
+		mkdir -p .tmp-skills && cp -r "$$HOME/.claude/skills/"* .tmp-skills/ || true; \
+	else \
+		echo ">> Warning: ~/.claude/skills not found. No dependencies will be installed."; \
+		mkdir -p .tmp-skills; \
+	fi
+	@echo ">> Building Docker image..."
+	@docker build --build-arg INSTALL_SKILLS="$(or $(SKILLS),all)" -t $(DOCKER_IMAGE_NAME) . || (rm -rf .tmp-skills; exit 1)
+	@rm -rf .tmp-skills
+	@echo ">> Build complete and temporary files cleaned up."
 
 run:
 	./clp
