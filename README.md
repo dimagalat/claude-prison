@@ -23,10 +23,6 @@ By running Claude Code inside a Docker container, it can safely plan, create, an
 Before Claude Code can work, it needs to be authenticated with your Anthropic account. This process uses an OAuth flow that will open a browser to generate a token. **This token is securely preserved in `~/.config/claude-prison` so you only have to do this once.**
 
 1. Clone this repository anywhere on your machine:
-   ```bash
-   git clone https://github.com/your-username/claude-prison.git ~/.claude-prison
-   cd ~/.claude-prison
-   ```
 2. Ensure you have an active SSH Agent running (if you want Claude to `git push`):
    ```bash
    eval $(ssh-agent)
@@ -55,6 +51,20 @@ make install BIN_DIR=/usr/local/bin
 ```
 
 *Note: If your terminal says `command not found: clp` after installation, run `make config` for instructions on how to add `~/.local/bin` or your custom installation directory to your system's `$PATH`.*
+
+## Skills Support
+Claude Code natively loads external capabilities from your `~/.claude/skills` directory, and `clp` automatically exposes these skills to your container by passing your config folder.
+
+However, if those skills require underlying system packages (like Playwright, ffmpeg) or Python pip packages, you can ask Docker to install them directly into the environment image by running:
+```bash
+make build-with-skills
+```
+*Note: This will check your host's `~/.claude/skills` directory and install dependencies if they have an `install-skills.sh` file or valid `dependencies.json` configurations.*
+
+You can also target specific skills rather than all of them:
+```bash
+make build-with-skills SKILLS="webapp-testing some-other-skill"
+```
 
 ## Usage
 
