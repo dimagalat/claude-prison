@@ -3,15 +3,7 @@
 
 set -e
 
-# Sync function to copy config file back to host
-sync_config() {
-    if [ -f "$CLAUDE_CONFIG_DIR/.claude.json" ]; then
-        if [ ! -f "$HOME/.claude.json" ] || [ "$CLAUDE_CONFIG_DIR/.claude.json" -nt "$HOME/.claude.json" ]; then
-            cp "$CLAUDE_CONFIG_DIR/.claude.json" "$HOME/.claude.json"
-        fi
-    fi
-}
-trap sync_config EXIT
+
 
 # Configuration
 IMAGE_NAME="claude-prison-env"
@@ -47,11 +39,7 @@ if [ -d "$HOME/.claude" ]; then
     VOLUMES+=("-v" "$HOME/.claude:/claude/.claude")
 fi
 if [ -f "$HOME/.claude.json" ]; then
-    # Docker breaks single-file inode mounts on atomic writes (which Claude Code uses)
-    # Instead, copy it into the directory mount if the host version is newer
-    if [ ! -f "$CLAUDE_CONFIG_DIR/.claude.json" ] || [ "$HOME/.claude.json" -nt "$CLAUDE_CONFIG_DIR/.claude.json" ]; then
-        cp "$HOME/.claude.json" "$CLAUDE_CONFIG_DIR/.claude.json"
-    fi
+    VOLUMES+=("-v" "$HOME/.claude.json:/claude/.claude.json")
 fi
 
 # Extract Claude Code credentials from macOS Keychain to inject into Docker
