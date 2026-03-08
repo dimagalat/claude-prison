@@ -22,22 +22,6 @@ RUN npm install -g @anthropic-ai/claude-code@latest
 # Create directories
 RUN mkdir -p /claude /workspace
 
-# Skills: SKILL.md files are always copied for reference. Dependencies are only
-# installed when INSTALL_SKILLS is set.
-#   docker build --build-arg INSTALL_SKILLS=all .
-#   docker build --build-arg INSTALL_SKILLS="webapp-testing" .
-ARG INSTALL_SKILLS=""
-COPY skills/ /skills/
-RUN if [ -n "$INSTALL_SKILLS" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends python3 python3-pip && rm -rf /var/lib/apt/lists/* && \
-        chmod +x /skills/install-skills.sh && \
-        if [ "$INSTALL_SKILLS" = "all" ]; then \
-            /skills/install-skills.sh; \
-        else \
-            /skills/install-skills.sh $INSTALL_SKILLS; \
-        fi; \
-    fi
-
 # Copy local entrypoint script
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

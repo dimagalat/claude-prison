@@ -42,14 +42,6 @@ VOLUMES=(
     "-v" "$CLAUDE_CONFIG_DIR:/claude"
 )
 
-# Optional: Mount skills folder dynamically from config directory to make external skills accessible inside Claude Prison
-if [ -d "$CLAUDE_CONFIG_DIR/skills" ]; then
-    VOLUMES+=("-v" "$CLAUDE_CONFIG_DIR/skills:/skills")
-elif [ -d "$HOME/.claude-prison/skills" ]; then
-    # Fallback to the original cloned repo if the user has skills defined there
-    VOLUMES+=("-v" "$HOME/.claude-prison/skills:/skills")
-fi
-
 # Mount host Claude auth files if they exist to pass session into container
 if [ -d "$HOME/.claude" ]; then
     VOLUMES+=("-v" "$HOME/.claude:/claude/.claude")
