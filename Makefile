@@ -2,13 +2,18 @@ DOCKER_IMAGE_NAME = claude-prison-env
 DOCKER_CONTAINER_NAME = claude-prison-session
 BIN_DIR ?= ~/.local/bin
 
-.PHONY: build run stop shell restart clean logs status cgym
+.PHONY: build build-with-skills run stop shell restart clean logs status cgym
 
 cgym:
 	cd claude-gym && go build -o cgym .
 
 build: cgym
 	docker build -t $(DOCKER_IMAGE_NAME) .
+
+# Build with all skills: make build-with-skills
+# Build with specific skills: make build-with-skills SKILLS="webapp-testing"
+build-with-skills: cgym
+	docker build --build-arg INSTALL_SKILLS="$(or $(SKILLS),all)" -t $(DOCKER_IMAGE_NAME) .
 
 run:
 	./clp

@@ -16,7 +16,7 @@ fi
 # Ensure the group exists
 # We check if a group with the given GID already exists. If not, we create 'claude_group'.
 if ! getent group "$USER_GID" >/dev/null 2>&1; then
-    addgroup -g "$USER_GID" claude_group 2>/dev/null || true
+    groupadd -g "$USER_GID" claude_group 2>/dev/null || true
     GROUP_NAME="claude_group"
 else
     # GID exists, grab its name
@@ -26,7 +26,7 @@ fi
 # Ensure the user exists
 # We check if a user with the given UID already exists. If not, we create 'claude_user'.
 if ! getent passwd "$USER_UID" >/dev/null 2>&1; then
-    adduser -D -u "$USER_UID" -G "$GROUP_NAME" -h /home/claude -s /bin/sh claude_user 2>/dev/null || true
+    useradd -u "$USER_UID" -g "$GROUP_NAME" -d /home/claude -s /bin/sh -m claude_user 2>/dev/null || true
     USER_NAME="claude_user"
 else
     # UID exists, grab its name
@@ -80,7 +80,7 @@ if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
         echo ">> [SSH Agent] Status: Connected with $NUM_KEYS key(s) available."
         echo ">> [SSH Agent] Verifying GitHub connectivity from inside..."
         # Try a quick non-interactive test as the mapped user
-        if su-exec "${USER_NAME}" ssh -T -o ConnectTimeout=5 -o BatchMode=yes git@github.com 2>&1 | grep -q "successfully authenticated"; then
+        if gosu "${USER_NAME}" ssh -T -o ConnectTimeout=5 -o BatchMode=yes git@github.com 2>&1 | grep -q "successfully authenticated"; then
             echo ">> [SSH Agent] Success: Container is authenticated with GitHub!"
         else
             echo ">> [SSH Agent] Warning: Container failed GitHub SSH authentication."
@@ -115,6 +115,11 @@ if [ ! -d "$PERSISTENT_CLAUDE_DIR" ] && [ ! -f "$PERSISTENT_AUTH" ]; then
     echo ">> [Claude Auth] Warning: No authentication state found in /claude. You may be in guest mode."
 fi
 
+# Source skill environment variables if any skills were installed
+if [ -f /skills/env.sh ]; then
+    . /skills/env.sh
+fi
+
 export SHELL=/bin/bash
 
 # Force-override "native" install expectation
@@ -129,4 +134,4 @@ if [ -f "/usr/local/bin/claude" ]; then
 fi
 
 # Switch from root to the mapped user and execute the passed command (e.g. `claude`)
-exec su-exec "${USER_NAME}" "$@"
+exec gosu "${USER_NAME}" "$@"
