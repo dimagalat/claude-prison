@@ -43,7 +43,7 @@ fi
 # Build image if it doesn't exist
 if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
     echo ">> Building Claude Prison Docker image ($IMAGE_NAME)..."
-    docker build -t "$IMAGE_NAME" "$SCRIPT_DIR"
+    DOCKER_BUILDKIT=1 docker build -t "$IMAGE_NAME" "$SCRIPT_DIR"
 fi
 
 # Set up volume mounts
