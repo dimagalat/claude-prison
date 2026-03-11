@@ -22,6 +22,24 @@ HOST_GID=$(id -g)
 # Initialize
 mkdir -p "$CLAUDE_CONFIG_DIR"
 
+# Check if Docker daemon is running and attempt to start it if not
+if ! docker info >/dev/null 2>&1; then
+    echo ">> Docker daemon is not responding. Attempting to start it..."
+    if [[ "$OSTYPE" == "darwin"* ]] && command -v colima >/dev/null 2>&1; then
+        echo ">> Detected macOS with Colima. Starting colima..."
+        colima start
+    elif [[ "$OSTYPE" == "linux-gnu"* ]] && command -v systemctl >/dev/null 2>&1; then
+        echo ">> Detected Linux with systemctl. Starting docker service..."
+        systemctl start docker
+    fi
+    
+    # Check again after trying to start
+    if ! docker info >/dev/null 2>&1; then
+        echo ">> Error: Docker daemon is still not running. Please start Docker manually and try again."
+        exit 1
+    fi
+fi
+
 # Build image if it doesn't exist
 if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
     echo ">> Building Claude Prison Docker image ($IMAGE_NAME)..."
