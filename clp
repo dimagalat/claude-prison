@@ -50,15 +50,8 @@ fi
 VOLUMES=(
     "-v" "$PWD:/workspace"
     "-v" "$CLAUDE_CONFIG_DIR:/claude"
+    "-v" "claude-prison-creds:/claude-persist"
 )
-
-# Mount host Claude auth files if they exist to pass session into container
-if [ -d "$HOME/.claude" ]; then
-    VOLUMES+=("-v" "$HOME/.claude:/claude/.claude")
-fi
-if [ -f "$HOME/.claude.json" ]; then
-    VOLUMES+=("-v" "$HOME/.claude.json:/claude/.claude.json")
-fi
 
 # Extract Claude Code credentials from macOS Keychain to inject into Docker
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -216,7 +209,7 @@ if command -v tmux >/dev/null 2>&1; then
             tmux new-session -d -s "$SESSION_NAME" "bash"
             
             # Formulate the exact command string and send it to the shell
-            CMD_STRING="${DOCKER_CMD[*]} $IMAGE_NAME claude --dangerously-skip-permissions $*"
+            CMD_STRING="${DOCKER_CMD[*]} $IMAGE_NAME claude --dangerously-skip-permissions --settings '{\"skipDangerousModePermissionPrompt\": true}' $*"
             tmux send-keys -t "$SESSION_NAME" "$CMD_STRING" C-m
             
             # Split the window (right pane 30% width) for claude-gym, passing the configuration directory and Docker path

@@ -7,7 +7,10 @@ BIN_DIR ?= ~/.local/bin
 cgym:
 	cd claude-gym && go build -o cgym .
 
-build: cgym
+.tmp-skills:
+	@mkdir -p .tmp-skills
+
+build: cgym .tmp-skills
 	docker build -t $(DOCKER_IMAGE_NAME) .
 
 # Build with all skills: make build-with-skills
@@ -30,8 +33,8 @@ run:
 	./clp
 
 stop:
-	docker stop $(DOCKER_CONTAINER_NAME) || true
-	docker rm $(DOCKER_CONTAINER_NAME) || true
+	@docker stop $(DOCKER_CONTAINER_NAME) >/dev/null 2>&1 || true
+	@docker rm $(DOCKER_CONTAINER_NAME) >/dev/null 2>&1 || true
 
 shell:
 	docker exec -it $(DOCKER_CONTAINER_NAME) bash
@@ -39,7 +42,9 @@ shell:
 restart: stop run
 
 clean: stop
-	docker rmi $(DOCKER_IMAGE_NAME) || true
+	@docker rmi $(DOCKER_IMAGE_NAME) >/dev/null 2>&1 || true
+	@rm -rf .tmp-skills
+	@echo ">> Cleaned up containers, images, and temporary files."
 
 logs:
 	docker logs -f $(DOCKER_CONTAINER_NAME)
