@@ -89,42 +89,38 @@ if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
     fi
 fi
 
-# Set up Claude Auth / Subscription via persistent symlinks in the WORKSPACE
-# This allows Claude Code to see settings/skills directly in the project folder
-PERSISTENT_CLAUDE_DIR="/claude/.claude"
-CONTAINER_CLAUDE_DIR="/workspace/.claude"
-PERSISTENT_AUTH="/claude/.claude.json"
-CONTAINER_AUTH="/workspace/.claude.json"
+# Set up Claude Auth / Subscription directly in the container's HOME
+# Using a dedicated volume /claude-persist mapped from Docker instead of host mount
+PERSISTENT_CREDS="/claude-persist/.credentials.json"
+FALLBACK_MAC_CREDS="/claude/.credentials.json"
+CONTAINER_CLAUDE_DIR="${USER_HOME}/.claude"
+CONTAINER_CREDS="${CONTAINER_CLAUDE_DIR}/.credentials.json"
+CONTAINER_AUTH="${USER_HOME}/.claude.json"
 
-# Ensure /workspace is owned by the user (it usually is via mount, but gosu needs it)
-chown "$USER_UID:$USER_GID" /workspace 2>/dev/null || true
+mkdir -p "$CONTAINER_CLAUDE_DIR"
+chown "$USER_UID:$USER_GID" "$CONTAINER_CLAUDE_DIR" 2>/dev/null || true
 
-if [ -d "$PERSISTENT_CLAUDE_DIR" ]; then
-    echo ">> [Claude Auth] Establishing full session bridge in /workspace..."
-    ln -sf "$PERSISTENT_CLAUDE_DIR" "$CONTAINER_CLAUDE_DIR"
-    chown -h "$USER_UID:$USER_GID" "$CONTAINER_CLAUDE_DIR" 2>/dev/null || true
-fi
-
-if [ -f "$PERSISTENT_AUTH" ]; then
-    ln -sf "$PERSISTENT_AUTH" "$CONTAINER_AUTH"
-    chown -h "$USER_UID:$USER_GID" "$CONTAINER_AUTH" 2>/dev/null || true
-    
-    if grep -q "opusProMigrationComplete" "$CONTAINER_AUTH" 2>/dev/null; then
-        echo ">> [Claude Auth] Subscription: Professional/Max features active."
-    fi
-fi
-
-PERSISTENT_CREDS="/claude/.credentials.json"
-CONTAINER_CREDS="/workspace/.credentials.json"
+# Restore credentials if they exist
 if [ -f "$PERSISTENT_CREDS" ]; then
-    echo ">> [Claude Auth] Bridging keychain credentials..."
-    ln -sf "$PERSISTENT_CREDS" "$CONTAINER_CREDS"
-    chown -h "$USER_UID:$USER_GID" "$CONTAINER_CREDS" 2>/dev/null || true
+    echo ">> [Claude Auth] Restoring credentials from persistent volume..."
+    cp "$PERSISTENT_CREDS" "$CONTAINER_CREDS"
+elif [ -f "$FALLBACK_MAC_CREDS" ]; then
+    echo ">> [Claude Auth] Restoring credentials from Mac Keychain fallback..."
+    cp "$FALLBACK_MAC_CREDS" "$CONTAINER_CREDS"
+else
+    echo ">> [Claude Auth] Warning: No authentication state found. You may need to log in."
 fi
 
-if [ ! -d "$PERSISTENT_CLAUDE_DIR" ] && [ ! -f "$PERSISTENT_AUTH" ]; then
-    echo ">> [Claude Auth] Warning: No authentication state found in /claude. You may be in guest mode."
+# Ensure correct ownership of credentials
+if [ -f "$CONTAINER_CREDS" ]; then
+    chown "$USER_UID:$USER_GID" "$CONTAINER_CREDS" 2>/dev/null || true
+    chmod 600 "$CONTAINER_CREDS" 2>/dev/null || true
 fi
+
+# Generate minimal .claude.json so it doesn't think it's a fresh install
+# This prevents the re-auth loop caused by missing .claude.json even when credentials exist
+echo '{"hasCompletedOnboarding":true,"installMethod":"native"}' > "$CONTAINER_AUTH"
+chown "$USER_UID:$USER_GID" "$CONTAINER_AUTH" 2>/dev/null || true
 
 # Source skill environment variables if any skills were installed
 if [ -f /etc/profile.d/skills-env.sh ]; then
@@ -144,5 +140,16 @@ if [ -f "/usr/local/bin/claude" ]; then
     export PATH="${USER_HOME}/.local/bin:$PATH"
 fi
 
-# Switch from root to the mapped user and execute the passed command (e.g. `claude`)
-exec gosu "${USER_NAME}" "$@"
+# Set up a trap to save credentials back to the persistent volume when the container exits
+save_credentials() {
+    if [ -f "$CONTAINER_CREDS" ]; then
+        cp "$CONTAINER_CREDS" "$PERSISTENT_CREDS" 2>/dev/null || true
+    fi
+}
+trap save_credentials EXIT
+
+# Execute the command (without exec so the trap fires on exit)
+gosu "${USER_NAME}" "$@"
+EXIT_CODE=$?
+
+exit $EXIT_CODE
