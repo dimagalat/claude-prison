@@ -1,4 +1,5 @@
 ---
+<<<<<<< HEAD
 name: dependency-creator
 description: Create dependencies.json for Claude Prison skills. Make sure to use this skill whenever the user is creating a new skill, asks about fixing environment/dependency errors, mentions missing CLI tools, or wants to install Python/Alpine/NPM packages. Help them generate the dependencies.json file to persist those tools across sessions.
 ---
@@ -19,6 +20,21 @@ Your job when using this skill is to act as a collaborative partner, not just a 
 Claude Prison uses a specialized dynamic dependency installer during the build phase (`make build-with-skills`). It ingests a `dependencies.json` file placed in the root of any skill's directory (e.g., `~/.claude/skills/webapp-testing/dependencies.json`). 
 
 ### File Format
+=======
+name: Generate Skill Dependencies
+description: Generates a dependencies.json file for Claude Code skills based on a skill description.
+---
+
+# Generate Skill Dependencies
+
+You can help users create a `dependencies.json` file for their Claude Code skills. 
+
+Claude Prison uses a specialized dynamic dependency installer that reads from a `dependencies.json` file placed in the root of a skill's directory (e.g., `~/.claude/skills/my-awesome-skill/dependencies.json`). 
+
+When a user asks you to create dependencies for a skill or asks how to install dependencies for a skill they are writing, you should generate a `dependencies.json` file for them.
+
+## File Format
+>>>>>>> 41684a1ddcd660a1b95ef51ec8996cf5d2d0135d
 
 The `dependencies.json` file supports four optional fields. Here is an example of the structure:
 
@@ -43,6 +59,7 @@ The `dependencies.json` file supports four optional fields. Here is an example o
 }
 ```
 
+<<<<<<< HEAD
 ### Definitions & Guidelines:
 
 Please explain these rules to the user if they ask for things that violate them:
@@ -70,3 +87,16 @@ For instance, today's LLMs are smart — they have good theory of mind on how to
 1. Write the `dependencies.json` file into the appropriate skill folder: `~/.claude/skills/<skill-name>/dependencies.json`. If you don't know the exact path, ask the user or search their workspace for existing skill folders.
 2. Instruct the user to run `make build-with-skills` on their host machine so the Docker container ingests the dependencies.
 3. If they encounter build errors during the apt or pip phase, read the logs, adjust the package names (assure they are Debian-compatible), and update the JSON. Repeat.
+=======
+### Definitions:
+1. **`apk` (Array of Strings):** A list of Alpine/Debian apt packages required by the skill. The Docker image uses Debian natively (via `apt-get`), so provide standard Debian/Ubuntu package names. (The key is named `apk` for historical reasons, but the installer uses `apt-get`).
+2. **`pip` (Array of Strings):** A list of Python packages to install globally in the container using `pip`.
+3. **`post_install` (Array of Strings):** A list of shell commands to execute after the `apk` and `pip` packages are installed. (e.g., initializing a database, downloading a model, or running a post-install script).
+4. **`env` (Object of String:String mappings):** Environment variables that will be written to an `env.sh` file and loaded when the container starts.
+
+## INSTRUCTIONS
+If a user asks you to define dependencies for a new skill:
+1. Determine what System packages, Python packages, and Environment variables the skill needs to function.
+2. Formulate these requirements into the `dependencies.json` JSON schema.
+3. Write or output the `dependencies.json` into the appropriate skill folder in `~/.claude/skills/<skill-name>/dependencies.json`.
+>>>>>>> 41684a1ddcd660a1b95ef51ec8996cf5d2d0135d
